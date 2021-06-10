@@ -1,12 +1,26 @@
 /*
  * SPDX-License-Identifier: Apache-2.0
  *
- * Copyright (c) 2021 Pavlo Hamov <pasha.gamov@gmail.com>
+ * Copyright (c) 2021 Alex Vandenberg <a.vandenberg0175@gmail.com>
  */
 
 / {
 	zephyr,user {
 		/* adjust channel number according to pinmux in board.dts */
-		io-channels = <&adc 0>;
+		io-channels = <&adc 0>, <&adc 1>, <&adc 2>, <&adc 3>, <&adc 4>,
+					  <&adc 5>, <&adc 6>, <&adc 7>;
+
+/*
+ *  analog pin corospond to the AIN number
+ *  A0   = <&adc 2> = P0.04/AIN2
+ *  A1   = <&adc 3> = P0.05/AIN3
+ *  A2   = <&adc 6> = P0.30/AIN6
+ *  A3   = <&adc 4> = P0.28/AIN4
+ *  A4   = <&adc 0> = P0.02/AIN0
+ *  A5   = <&adc 1> = P0.03/AIN1
+ *  AREF = <&adc 7> = P0.31/AIN7
+ *  VDIV = <&adc 5> = P0.29/AIN5
+ */
+
 	};
 };

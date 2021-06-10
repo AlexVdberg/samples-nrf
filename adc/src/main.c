@@ -32,7 +32,7 @@
 
 /* Common settings supported by most ADCs */
 #define ADC_RESOLUTION			12
-#define ADC_GAIN				ADC_GAIN_1 // This comes out as 6 instead of 1
+#define ADC_GAIN				ADC_GAIN_1_6
 #define ADC_REFERENCE			ADC_REF_INTERNAL
 #define ADC_ACQUISITION_TIME	ADC_ACQ_TIME_DEFAULT
 
@@ -142,6 +142,7 @@ void main(void)
                         ADC_RESOLUTION,
                         ADC_NUM_CHANNELS,
                         ADC_REFERENCE);
+				printk(" channel_id[%d]: %d", i, channel_ids[i]);
 			}
 		}
 		printk("\n");
