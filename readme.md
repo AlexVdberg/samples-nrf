@@ -36,6 +36,12 @@ sudo usermod -a -G uucp $USER
 ```
 
 # coc.nvim setup for nrf connect sdk
+I use `vim` as my primary editor. The `coc.nvim` plugin and `coc-clangd`
+extension work nicely with the nrf connect sdk with a couple of minor tweaks.
+
+Clangd does have a `--query-driver` option that would allow it to extract the
+include paths from the gnuarmemb compiler. I haven't noticed a need to do this
+yet and the coc-clangd plugin doesn't have an obvious way to do this.
 
 ## Remove unrecognised compiler flag
 To get code completion for nrf connect projects, I had to configure clangd
@@ -64,8 +70,11 @@ west config build.cmake-args -- -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 ```
 
 ## Tell coc-clangd where the compilation database is
-Add the follwing to .vim/coc-settings.json (your `:CocConfig` or `:CocLocalConfig`)
+Add the follwing to `.vim/coc-settings.json` (your `:CocConfig` or
+`:CocLocalConfig`)
 
+```
 {
 	"clangd.compilationDatabasePath": "build/"
 }
+```

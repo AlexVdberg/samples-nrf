@@ -14,7 +14,19 @@ or MCU datasheet for further details.
 
 The pins of the ADC channels are defined in
 `boards/adafruit_feather_nrf52840.overlay`. The channel number corrosponts to
-the `AIN#`, not the `A#`; ie. `channel 0` corrosponds to `A4`.
+the `AIN#`, not the `A#`; ie. `channel 0` corrosponds to `A4`. The io-channel
+mapping for the `adafruit_feather_nrf52840` is as follows:
+
+```
+A0   = <&adc 2> = P0.04/AIN2
+A1   = <&adc 3> = P0.05/AIN3
+A2   = <&adc 6> = P0.30/AIN6
+A3   = <&adc 4> = P0.28/AIN4
+A4   = <&adc 0> = P0.02/AIN0
+A5   = <&adc 1> = P0.03/AIN1
+AREF = <&adc 7> = P0.31/AIN7
+VDIV = <&adc 5> = P0.29/AIN5
+```
 
 
 ## Building and Running
