@@ -139,7 +139,7 @@ void main(void)
 		}
 		printk("\n");
 
-		printk(" ADC_GAIN: %d, ADC_RESOLUTION %d, ADC_NUM_CHANNELS %d",
+		printk("ADC_GAIN: %d, ADC_RESOLUTION %d, ADC_NUM_CHANNELS %d",
 				ADC_GAIN,
 				ADC_RESOLUTION,
 				ADC_NUM_CHANNELS);
