@@ -22,12 +22,6 @@
 #error "Currently only 8 channels supported in this sample"
 #endif
 
-#if ADC_NUM_CHANNELS == 2 && !DT_SAME_NODE( \
-	DT_PHANDLE_BY_IDX(DT_PATH(zephyr_user), io_channels, 0), \
-	DT_PHANDLE_BY_IDX(DT_PATH(zephyr_user), io_channels, 1))
-#error "Channels have to use the same ADC."
-#endif
-
 #define ADC_NODE		DT_PHANDLE(DT_PATH(zephyr_user), io_channels)
 
 /* Common settings supported by most ADCs */
@@ -36,7 +30,7 @@
 #define ADC_REFERENCE			ADC_REF_INTERNAL
 #define ADC_ACQUISITION_TIME	ADC_ACQ_TIME_DEFAULT
 
-/* Get the numbers of up to two channels */
+/* Get the numbers of all 8 channels */
 static uint8_t channel_ids[ADC_NUM_CHANNELS] = {
 	DT_IO_CHANNELS_INPUT_BY_IDX(DT_PATH(zephyr_user), 0),
 	DT_IO_CHANNELS_INPUT_BY_IDX(DT_PATH(zephyr_user), 1),
