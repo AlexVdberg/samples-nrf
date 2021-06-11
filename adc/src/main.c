@@ -18,8 +18,8 @@
 
 #define ADC_NUM_CHANNELS	DT_PROP_LEN(DT_PATH(zephyr_user), io_channels)
 
-#if ADC_NUM_CHANNELS > 2
-#error "Currently only 1 or 2 channels supported in this sample"
+#if ADC_NUM_CHANNELS != 8
+#error "Currently only 8 channels supported in this sample"
 #endif
 
 #if ADC_NUM_CHANNELS == 2 && !DT_SAME_NODE( \
@@ -39,9 +39,13 @@
 /* Get the numbers of up to two channels */
 static uint8_t channel_ids[ADC_NUM_CHANNELS] = {
 	DT_IO_CHANNELS_INPUT_BY_IDX(DT_PATH(zephyr_user), 0),
-#if ADC_NUM_CHANNELS == 2
-	DT_IO_CHANNELS_INPUT_BY_IDX(DT_PATH(zephyr_user), 1)
-#endif
+	DT_IO_CHANNELS_INPUT_BY_IDX(DT_PATH(zephyr_user), 1),
+	DT_IO_CHANNELS_INPUT_BY_IDX(DT_PATH(zephyr_user), 2),
+	DT_IO_CHANNELS_INPUT_BY_IDX(DT_PATH(zephyr_user), 3),
+	DT_IO_CHANNELS_INPUT_BY_IDX(DT_PATH(zephyr_user), 4),
+	DT_IO_CHANNELS_INPUT_BY_IDX(DT_PATH(zephyr_user), 5),
+	DT_IO_CHANNELS_INPUT_BY_IDX(DT_PATH(zephyr_user), 6),
+	DT_IO_CHANNELS_INPUT_BY_IDX(DT_PATH(zephyr_user), 7)
 };
 
 static int16_t sample_buffer[ADC_NUM_CHANNELS];
@@ -122,8 +126,8 @@ void main(void)
 			return;
 		}
 
-		printk("ADC reading:");
 		for (uint8_t i = 0; i < ADC_NUM_CHANNELS; i++) {
+			printk("Channel %d:", channel_ids[i]);
 			int32_t raw_value = sample_buffer[i];
 
 			printk(" %d", raw_value);
@@ -137,15 +141,16 @@ void main(void)
 				adc_raw_to_millivolts(adc_vref, ADC_GAIN,
 					ADC_RESOLUTION, &mv_value);
 				printk(" = %d mV  ", mv_value);
-                printk(" ADC_GAIN: %d, ADC_RESOLUTION %d, ADC_NUM_CHANNELS %d, ADC_REFERENCE %d",
-                        ADC_GAIN,
-                        ADC_RESOLUTION,
-                        ADC_NUM_CHANNELS,
-                        ADC_REFERENCE);
-				printk(" channel_id[%d]: %d", i, channel_ids[i]);
 			}
 		}
 		printk("\n");
+
+		printk(" ADC_GAIN: %d, ADC_RESOLUTION %d, ADC_NUM_CHANNELS %d",
+				ADC_GAIN,
+				ADC_RESOLUTION,
+				ADC_NUM_CHANNELS);
+		printk(", ADC_REFERENCE %d\n",
+				ADC_REFERENCE);
 
 		k_sleep(K_MSEC(1000));
 	}
