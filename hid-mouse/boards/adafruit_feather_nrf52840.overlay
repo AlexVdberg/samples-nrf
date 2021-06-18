@@ -1,0 +1,16 @@
+/ {
+	buttons {
+		button0: button_0 {
+			gpios = <&gpio1 2 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Push button switch";
+		};
+		button1: button_1 {
+			gpios = <&gpio1 8 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Push button switch";
+		};
+	};
+
+	aliases {
+		sw1 = &button1;
+	};
+};
