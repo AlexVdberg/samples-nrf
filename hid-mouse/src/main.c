@@ -155,12 +155,14 @@ static void status_cb(enum usb_dc_status_code status, const uint8_t *param)
 	usb_status = status;
 }
 
-static void button_one(const struct device *gpio, struct gpio_callback *cb,
+static void button_press(const struct device *gpio, struct gpio_callback *cb,
 			uint32_t pins)
 {
 	// pins is BIT(pin) of the actual pin number. need to that log2 to get the
-	// actual pin number
-	LOG_INF("BUTTON PRESSED!!! %u, %u, %lu", pins, cb->pin_mask, GAMEPAD_BTN_ONE);
+	// actual pin number. This then needs to get translated to gamepad button
+	// number
+	LOG_INF("BUTTON PRESSED!!! %u, %u, %lu, %lu, %i", pins, cb->pin_mask,
+			GAMEPAD_BTN_ONE, (ulong_t)log2(pins), PIN0);
 	int ret;
 	uint8_t state = status[GAMEPAD_BTN_REPORT_POS];
 
@@ -171,50 +173,61 @@ static void button_one(const struct device *gpio, struct gpio_callback *cb,
 		}
 	}
 
-	ret = gpio_pin_get(gpio, PIN0);
+	// Ensure only 1 pin is in this callback
+	if (is_power_of_two(pins) == false) {
+		LOG_ERR("More than one pin in button callback at a time");
+	}
+
+	// Get the state of the button
+	// assumes only 1 pin is returned in the callback
+	// maybe need to put a check that pins is a clean power of 2
+	// or do something with the cb->pin_mask, but that only works if only 1 pin
+	// is on the callback
+	ret = gpio_pin_get(gpio, log2(pins));
 	if (ret < 0) {
-		LOG_ERR("Failed to get the state of pin %u, error: %d",
-			PIN0, ret);
+		LOG_ERR("Failed to get the state of pin %d, error: %d",
+			(int)log2(pins), ret);
 		return;
 	}
+	LOG_INF("gpio_pin_get has value: %d", ret);
 
-	if (def_val[0] != (uint8_t)ret) {
-		state |= (int)log2(pins);
+	// Determine the button pressed
+	int btn = 0;
+	switch ((int)log2(pins)) {
+#if DT_NODE_HAS_STATUS(SW0_NODE, okay)
+		case PIN0: btn = GAMEPAD_BTN_ONE; break;
+#endif
+#if DT_NODE_HAS_STATUS(SW1_NODE, okay)
+		case PIN1: btn = GAMEPAD_BTN_TWO; break;
+#endif
+#if DT_NODE_HAS_STATUS(SW2_NODE, okay)
+		case PIN2: btn = GAMEPAD_BTN_THREE; break;
+#endif
+#if DT_NODE_HAS_STATUS(SW3_NODE, okay)
+		case GAMEPAD_BTN_FOUR: btn = GAMEPAD_BTN_FOUR; break;
+#endif
+#if DT_NODE_HAS_STATUS(SW4_NODE, okay)
+		case GAMEPAD_BTN_FIVE: btn = GAMEPAD_BTN_FIVE; break;
+#endif
+#if DT_NODE_HAS_STATUS(SW5_NODE, okay)
+		case GAMEPAD_BTN_SIX: btn = GAMEPAD_BTN_SIX; break;
+#endif
+#if DT_NODE_HAS_STATUS(SW6_NODE, okay)
+		case GAMEPAD_BTN_SEVEN: btn = GAMEPAD_BTN_SEVEN; break;
+#endif
+#if DT_NODE_HAS_STATUS(SW7_NODE, okay)
+		case GAMEPAD_BTN_EIGHT: btn = GAMEPAD_BTN_EIGHT; break;
+#endif
+		default: LOG_ERR("pins doesn't match any known pins"); break;
+	}
+
+	LOG_INF("Button %d callback has been called", btn);
+
+	// Set or reset the button state
+	if (ret == 0) {
+		state &= ~btn;
 	} else {
-		state &= ~(int)log2(pins);
-	}
-
-	if (status[GAMEPAD_BTN_REPORT_POS] != state) {
-		status[GAMEPAD_BTN_REPORT_POS] = state;
-		k_sem_give(&sem);
-	}
-}
-
-static void button_two(const struct device *gpio, struct gpio_callback *cb,
-			uint32_t pins)
-{
-	LOG_INF("BUTTON PRESSED!!! %u, %u, %lu", pins, cb->pin_mask, GAMEPAD_BTN_TWO);
-	int ret;
-	uint8_t state = status[GAMEPAD_BTN_REPORT_POS];
-
-	if (IS_ENABLED(CONFIG_USB_DEVICE_REMOTE_WAKEUP)) {
-		if (usb_status == USB_DC_SUSPEND) {
-			usb_wakeup_request();
-			return;
-		}
-	}
-
-	ret = gpio_pin_get(gpio, PIN0);
-	if (ret < 0) {
-		LOG_ERR("Failed to get the state of pin %u, error: %d",
-			PIN0, ret);
-		return;
-	}
-
-	if (def_val[0] != (uint8_t)ret) {
-		state |= GAMEPAD_BTN_TWO;
-	} else {
-		state &= ~GAMEPAD_BTN_TWO;
+		state |= btn;
 	}
 
 	if (status[GAMEPAD_BTN_REPORT_POS] != state) {
@@ -224,46 +237,11 @@ static void button_two(const struct device *gpio, struct gpio_callback *cb,
 }
 
 /*
-#if DT_NODE_HAS_STATUS(SW1_NODE, okay)
-static void right_button(const struct device *gpio, struct gpio_callback *cb,
-			 uint32_t pins)
-{
-	int ret;
-	uint8_t state = status[MOUSE_BTN_REPORT_POS];
-
-	if (IS_ENABLED(CONFIG_USB_DEVICE_REMOTE_WAKEUP)) {
-		if (usb_status == USB_DC_SUSPEND) {
-			usb_wakeup_request();
-			return;
-		}
-	}
-
-	ret = gpio_pin_get(gpio, PIN1);
-	if (ret < 0) {
-		LOG_ERR("Failed to get the state of pin %u, error: %d",
-			PIN1, ret);
-		return;
-	}
-
-	if (def_val[1] != (uint8_t)ret) {
-		state |= MOUSE_BTN_RIGHT;
-	} else {
-		state &= ~MOUSE_BTN_RIGHT;
-	}
-
-	if (status[MOUSE_BTN_REPORT_POS] != state) {
-		status[MOUSE_BTN_REPORT_POS] = state;
-		k_sem_give(&sem);
-	}
-}
-#endif
-
-#if DT_NODE_HAS_STATUS(SW2_NODE, okay)
 static void x_move(const struct device *gpio, struct gpio_callback *cb,
 		   uint32_t pins)
 {
 	int ret;
-	uint8_t state = status[MOUSE_X_REPORT_POS];
+	uint8_t state = status[GAMEPAD_X_REPORT_POS];
 
 	ret = gpio_pin_get(gpio, PIN2);
 	if (ret < 0) {
@@ -276,37 +254,11 @@ static void x_move(const struct device *gpio, struct gpio_callback *cb,
 		state += 10U;
 	}
 
-	if (status[MOUSE_X_REPORT_POS] != state) {
-		status[MOUSE_X_REPORT_POS] = state;
+	if (status[GAMEPAD_X_REPORT_POS] != state) {
+		status[GAMEPAD_X_REPORT_POS] = state;
 		k_sem_give(&sem);
 	}
 }
-#endif
-
-#if DT_NODE_HAS_STATUS(SW3_NODE, okay)
-static void y_move(const struct device *gpio, struct gpio_callback *cb,
-		   uint32_t pins)
-{
-	int ret;
-	uint8_t state = status[MOUSE_Y_REPORT_POS];
-
-	ret = gpio_pin_get(gpio, PIN3);
-	if (ret < 0) {
-		LOG_ERR("Failed to get the state of pin %u, error: %d",
-			PIN3, ret);
-		return;
-	}
-
-	if (def_val[3] != (uint8_t)ret) {
-		state += 10U;
-	}
-
-	if (status[MOUSE_Y_REPORT_POS] != state) {
-		status[MOUSE_Y_REPORT_POS] = state;
-		k_sem_give(&sem);
-	}
-}
-#endif
 */
 
 int callbacks_configure(const struct device *gpio, uint32_t pin, int flags,
@@ -336,7 +288,6 @@ int callbacks_configure(const struct device *gpio, uint32_t pin, int flags,
 
 	*val = (uint8_t)ret;
 
-	LOG_INF("BIT(pin): %lu, pin: %u", BIT(pin), pin);
 	gpio_init_callback(callback, handler, BIT(pin));
 	ret = gpio_add_callback(gpio, callback);
 	if (ret < 0) {
@@ -380,14 +331,14 @@ void main(void)
 	}
 
 	if (callbacks_configure(device_get_binding(PORT0), PIN0, PIN0_FLAGS,
-				&button_one, &callback[0], &def_val[0])) {
+				&button_press, &callback[0], &def_val[0])) {
 		LOG_ERR("Failed configuring left button callback.");
 		return;
 	}
 
 #if DT_NODE_HAS_STATUS(SW1_NODE, okay)
 	if (callbacks_configure(device_get_binding(PORT1), PIN1, PIN1_FLAGS,
-				&button_two, &callback[1], &def_val[1])) {
+				&button_press, &callback[1], &def_val[1])) {
 		LOG_ERR("Failed configuring right button callback.");
 		return;
 	}
