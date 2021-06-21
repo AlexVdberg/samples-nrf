@@ -1,3 +1,4 @@
 {
-	"clangd.compilationDatabasePath": "build/"
+	"clangd.compilationDatabasePath": "build/",
+	"clangd.arguments": ["--query-driver", "/opt/gnuarmemb/bin/arm-none-eabi-gcc"]
 }

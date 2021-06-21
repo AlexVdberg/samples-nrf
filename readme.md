@@ -78,3 +78,16 @@ Add the follwing to `.vim/coc-settings.json` (your `:CocConfig` or
 	"clangd.compilationDatabasePath": "build/"
 }
 ```
+
+## Tell coc-clangd to query for system include files from compilers
+Add the follwing to `.vim/coc-settings.json` (your `:CocConfig` or
+`:CocLocalConfig`). Change the path to your arn-none-eabi-gcc executable.
+There's probably a better way to do this one at a system level with some
+conditions around environment variables, but this works for now. This is also
+related to [issue #539 of clangd](https://github.com/clangd/clangd/issues/539).
+
+```
+{
+	"clangd.arguments": ["--query-driver", "/opt/gnuarmemb/bin/arm-none-eabi-gcc"]
+}
+```
