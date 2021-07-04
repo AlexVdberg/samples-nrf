@@ -50,21 +50,54 @@ static const struct gpio_dt_spec sw0 = GPIO_SPEC(SW0_NODE),
 	sw3 = GPIO_SPEC(SW3_NODE),
 	led0 = GPIO_SPEC(LED0_NODE);
 
-static const uint8_t hid_report_desc[] = HID_MOUSE_REPORT_DESC(2);
+#define HID_GAMEPAD_REPORT_DESC() {                            \
+	HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP),			\
+	HID_USAGE(HID_USAGE_GEN_DESKTOP_GAMEPAD),			\
+	HID_COLLECTION(HID_COLLECTION_APPLICATION),		\
+		HID_COLLECTION(HID_COLLECTION_PHYSICAL),	\
+			/* Bits used for button signalling */	\
+			HID_USAGE_PAGE(HID_USAGE_GEN_BUTTON),	\
+			HID_USAGE_MIN8(1),			\
+			HID_USAGE_MAX8(8),			\
+			HID_LOGICAL_MIN8(0),			\
+			HID_LOGICAL_MAX8(1),			\
+			HID_REPORT_SIZE(1),			\
+			HID_REPORT_COUNT(8),			\
+			/* HID_INPUT (Data,Var,Abs) */		\
+			HID_INPUT(0x02),			\
+			/* X, Y, RX, RY */		\
+			HID_USAGE_PAGE(HID_USAGE_GEN_DESKTOP),	\
+			HID_USAGE(HID_USAGE_GEN_DESKTOP_X),	\
+			HID_USAGE(HID_USAGE_GEN_DESKTOP_Y),	\
+			HID_USAGE(0x33),	\
+			HID_USAGE(0x34),	\
+			HID_LOGICAL_MIN8(-127),			\
+			HID_LOGICAL_MAX8(127),			\
+			HID_REPORT_SIZE(8),			\
+			HID_REPORT_COUNT(4),			\
+			/* HID_INPUT (Data,Var,Rel) */		\
+			HID_INPUT(0x06),			\
+		HID_END_COLLECTION,				\
+	HID_END_COLLECTION,					\
+}
 
-static uint8_t def_val[4];
-static volatile uint8_t status[4];
+static const uint8_t hid_report_desc[] = HID_GAMEPAD_REPORT_DESC();
+
+static uint8_t def_val[12];
+static volatile uint8_t status[5];
 static K_SEM_DEFINE(sem, 0, 1);	/* starts off "not available" */
-static struct gpio_callback callback[4];
+static struct gpio_callback callback[12];
 static enum usb_dc_status_code usb_status;
 
-#define MOUSE_BTN_REPORT_POS	0
-#define MOUSE_X_REPORT_POS	1
-#define MOUSE_Y_REPORT_POS	2
+#define GAMEPAD_BTN_REPORT_POS	0
+#define GAMEPAD_X_REPORT_POS	1
+#define GAMEPAD_Y_REPORT_POS	2
+#define GAMEPAD_RX_REPORT_POS	3
+#define GAMEPAD_RY_REPORT_POS	4
 
-#define MOUSE_BTN_LEFT		BIT(0)
-#define MOUSE_BTN_RIGHT		BIT(1)
-#define MOUSE_BTN_MIDDLE	BIT(2)
+#define GAMEPAD_BTN_LEFT		BIT(0)
+#define GAMEPAD_BTN_RIGHT		BIT(1)
+#define GAMEPAD_BTN_MIDDLE		BIT(2)
 
 static void status_cb(enum usb_dc_status_code status, const uint8_t *param)
 {
@@ -75,7 +108,7 @@ static void left_button(const struct device *gpio, struct gpio_callback *cb,
 			uint32_t pins)
 {
 	int ret;
-	uint8_t state = status[MOUSE_BTN_REPORT_POS];
+	uint8_t state = status[GAMEPAD_BTN_REPORT_POS];
 
 	if (IS_ENABLED(CONFIG_USB_DEVICE_REMOTE_WAKEUP)) {
 		if (usb_status == USB_DC_SUSPEND) {
@@ -92,13 +125,13 @@ static void left_button(const struct device *gpio, struct gpio_callback *cb,
 	}
 
 	if (def_val[0] != (uint8_t)ret) {
-		state |= MOUSE_BTN_LEFT;
+		state |= GAMEPAD_BTN_LEFT;
 	} else {
-		state &= ~MOUSE_BTN_LEFT;
+		state &= ~GAMEPAD_BTN_LEFT;
 	}
 
-	if (status[MOUSE_BTN_REPORT_POS] != state) {
-		status[MOUSE_BTN_REPORT_POS] = state;
+	if (status[GAMEPAD_BTN_REPORT_POS] != state) {
+		status[GAMEPAD_BTN_REPORT_POS] = state;
 		k_sem_give(&sem);
 	}
 }
@@ -107,7 +140,7 @@ static void right_button(const struct device *gpio, struct gpio_callback *cb,
 			 uint32_t pins)
 {
 	int ret;
-	uint8_t state = status[MOUSE_BTN_REPORT_POS];
+	uint8_t state = status[GAMEPAD_BTN_REPORT_POS];
 
 	if (IS_ENABLED(CONFIG_USB_DEVICE_REMOTE_WAKEUP)) {
 		if (usb_status == USB_DC_SUSPEND) {
@@ -124,13 +157,13 @@ static void right_button(const struct device *gpio, struct gpio_callback *cb,
 	}
 
 	if (def_val[1] != (uint8_t)ret) {
-		state |= MOUSE_BTN_RIGHT;
+		state |= GAMEPAD_BTN_RIGHT;
 	} else {
-		state &= ~MOUSE_BTN_RIGHT;
+		state &= ~GAMEPAD_BTN_RIGHT;
 	}
 
-	if (status[MOUSE_BTN_REPORT_POS] != state) {
-		status[MOUSE_BTN_REPORT_POS] = state;
+	if (status[GAMEPAD_BTN_REPORT_POS] != state) {
+		status[GAMEPAD_BTN_REPORT_POS] = state;
 		k_sem_give(&sem);
 	}
 }
@@ -139,7 +172,7 @@ static void x_move(const struct device *gpio, struct gpio_callback *cb,
 		   uint32_t pins)
 {
 	int ret;
-	uint8_t state = status[MOUSE_X_REPORT_POS];
+	uint8_t state = status[GAMEPAD_X_REPORT_POS];
 
 	ret = gpio_pin_get(gpio, sw2.pin);
 	if (ret < 0) {
@@ -152,8 +185,8 @@ static void x_move(const struct device *gpio, struct gpio_callback *cb,
 		state += 10U;
 	}
 
-	if (status[MOUSE_X_REPORT_POS] != state) {
-		status[MOUSE_X_REPORT_POS] = state;
+	if (status[GAMEPAD_X_REPORT_POS] != state) {
+		status[GAMEPAD_X_REPORT_POS] = state;
 		k_sem_give(&sem);
 	}
 }
@@ -162,7 +195,7 @@ static void y_move(const struct device *gpio, struct gpio_callback *cb,
 		   uint32_t pins)
 {
 	int ret;
-	uint8_t state = status[MOUSE_Y_REPORT_POS];
+	uint8_t state = status[GAMEPAD_Y_REPORT_POS];
 
 	ret = gpio_pin_get(gpio, sw3.pin);
 	if (ret < 0) {
@@ -175,8 +208,8 @@ static void y_move(const struct device *gpio, struct gpio_callback *cb,
 		state += 10U;
 	}
 
-	if (status[MOUSE_Y_REPORT_POS] != state) {
-		status[MOUSE_Y_REPORT_POS] = state;
+	if (status[GAMEPAD_Y_REPORT_POS] != state) {
+		status[GAMEPAD_Y_REPORT_POS] = state;
 		k_sem_give(&sem);
 	}
 }
@@ -295,11 +328,11 @@ void main(void)
 	while (true) {
 		k_sem_take(&sem, K_FOREVER);
 
-		report[MOUSE_BTN_REPORT_POS] = status[MOUSE_BTN_REPORT_POS];
-		report[MOUSE_X_REPORT_POS] = status[MOUSE_X_REPORT_POS];
-		status[MOUSE_X_REPORT_POS] = 0U;
-		report[MOUSE_Y_REPORT_POS] = status[MOUSE_Y_REPORT_POS];
-		status[MOUSE_Y_REPORT_POS] = 0U;
+		report[GAMEPAD_BTN_REPORT_POS] = status[GAMEPAD_BTN_REPORT_POS];
+		report[GAMEPAD_X_REPORT_POS] = status[GAMEPAD_X_REPORT_POS];
+		status[GAMEPAD_X_REPORT_POS] = 0U;
+		report[GAMEPAD_Y_REPORT_POS] = status[GAMEPAD_Y_REPORT_POS];
+		status[GAMEPAD_Y_REPORT_POS] = 0U;
 		ret = hid_int_ep_write(hid_dev, report, sizeof(report), NULL);
 		if (ret) {
 			LOG_ERR("HID write error, %d", ret);
